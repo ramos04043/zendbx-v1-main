@@ -144,7 +144,9 @@ export default function TablesPageEditable() {
         const projects = await apiClient.get('/api/projects');
         if (projects.length > 0) {
           projectId = projects[0].id;
-          localStorage.setItem('current_project_id', projectId);
+          if (projectId) {
+            localStorage.setItem('current_project_id', projectId);
+          }
         }
       } catch (err) {
         console.error('Failed to fetch projects:', err);
