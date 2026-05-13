@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test ZenDBX Auto-Fix Backend</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .query-box {
+            background: #000;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        .button {
+            background: #f97316;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #ea580c;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background: #22c55e20; border: 1px solid #22c55e; }
+        .error { background: #ef444420; border: 1px solid #ef4444; }
+        .info { background: #3b82f620; border: 1px solid #3b82f6; }
+        .warning { background: #f59e0b20; border: 1px solid #f59e0b; }
+        input, select {
+            background: #1a1a1a;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 ZenDBX Auto-Fix Backend Test</h1>
+        <p>Test the auto-fix functionality directly with your backend.</p>
+        
+        <div class="test-section">
+            <h2>⚙️ Configuration</h2>
+            <div>
+                <label>Backend URL:</label>
+                <input type="text" id="backendUrl" value="http://localhost:8000" style="width: 200px;">
+            </div>
+            <div>
+                <label>Project ID:</label>
+                <input type="text" id="projectId" placeholder="Enter your project ID" style="width: 300px;">
+            </div>
+            <div>
+                <label>JWT Token:</label>
+                <input type="text" id="jwtToken" placeholder="Enter your JWT token" style="width: 400px;">
+            </div>
+            <button class="button" onclick="testConnection()">🔗 Test Connection</button>
+            <div id="connectionResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🧪 Auto-Fix Tests</h2>
+            <p>These queries should trigger auto-fix:</p>
+            
+            <div>
+                <h3>Test 1: Operator Error (== instead of =)</h3>
+                <div class="query-box">SELECT * FROM users WHERE status == 'active';</div>
+                <button class="button" onclick="testQuery(1, 'SELECT * FROM users WHERE status == \\'active\\';')">Test This Query</button>
+                <div id="result1"></div>
+            </div>
+            
+            <div>
+                <h3>Test 2: Table Name Error (user instead of users)</h3>
+                <div class="query-box">SELECT * FROM user WHERE id = 1;</div>
+                <button class="button" onclick="testQuery(2, 'SELECT * FROM user WHERE id = 1;')">Test This Query</button>
+                <div id="result2"></div>
+            </div>
+            
+            <div>
+                <h3>Test 3: Multiple Errors</h3>
+                <div class="query-box">SELECT * FROM user WHERE status == 'active';</div>
+                <button class="button" onclick="testQuery(3, 'SELECT * FROM user WHERE status == \\'active\\';')">Test This Query</button>
+                <div id="result3"></div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📋 Instructions</h2>
+            <ol>
+                <li>Make sure your ZenDBX backend is running</li>
+                <li>Enter your project ID and JWT token above</li>
+                <li>Click "Test Connection" to verify setup</li>
+                <li>Run the auto-fix tests above</li>
+                <li>Check if auto-fix is working properly</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        async function testConnection() {
+            const backendUrl = document.getElementById('backendUrl').value;
+            const projectId = document.getElementById('projectId').value;
+            const token = document.getElementById('jwtToken').value;
+            const resultDiv = document.getElementById('connectionResult');
+            
+            if (!projectId || !token) {
+                resultDiv.innerHTML = '<div class="status warning">⚠️ Please enter Project ID and JWT Token</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="status info">🔄 Testing connection...</div>';
+            
+            try {
+                // Test a simple query to verify connection
+                const response = await fetch(`${backendUrl}/api/projects/${projectId}/query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ sql: 'SELECT 1 as test;' })
+                });
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = '<div class="status success">✅ Connection successful! Backend is working.</div>';
+                } else {
+                    const error = await response.json();
+                    resultDiv.innerHTML = `<div class="status error">❌ Connection failed: ${error.detail || 'Unknown error'}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="status error">❌ Network error: ${error.message}</div>`;
+            }
+        }
+        
+        async function testQuery(testNum, sql) {
+            const backendUrl = document.getElementById('backendUrl').value;
+            const projectId = document.getElementById('projectId').value;
+            const token = document.getElementById('jwtToken').value;
+            const resultDiv = document.getElementById(`result${testNum}`);
+            
+            if (!projectId || !token) {
+                resultDiv.innerHTML = '<div class="status warning">⚠️ Please configure Project ID and JWT Token first</div>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<div class="status info">🔄 Testing query...</div>';
+            
+            try {
+                const response = await fetch(`${backendUrl}/api/projects/${projectId}/query`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ sql: sql })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (data.auto_fixed) {
+                        resultDiv.innerHTML = `
+                            <div class="status success">
+                                🚀 <strong>AUTO-FIX SUCCESS!</strong> Query was automatically corrected and executed.
+                            </div>
+                            <div style="margin: 10px 0;">
+                                <strong>Original:</strong> <code>${data.original_sql || sql}</code><br>
+                                <strong>Fixed:</strong> <code>${data.fixed_sql}</code>
+                            </div>
+                            <div class="status info">
+                                📊 Results: ${data.row_count} rows returned in ${data.execution_time_ms}ms
+                            </div>
+                        `;
+                    } else {
+                        resultDiv.innerHTML = `
+                            <div class="status success">
+                                ✅ Query executed successfully (no auto-fix needed)
+                            </div>
+                            <div class="status info">
+                                📊 Results: ${data.row_count} rows returned in ${data.execution_time_ms}ms
+                            </div>
+                        `;
+                    }
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="status error">
+                            ❌ <strong>Query Failed:</strong> ${data.detail || 'Unknown error'}
+                        </div>
+                        <div class="status warning">
+                            💡 <strong>Expected:</strong> This query should have been auto-fixed. Check if auto-fix is enabled.
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ <strong>Network Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
