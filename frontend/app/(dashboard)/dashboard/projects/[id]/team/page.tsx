@@ -122,7 +122,7 @@ export default function TeamPage() {
     });
     
     // Listen for database changes (realtime triggers)
-    newSocket.on("subscribe", `table:project_messages`);
+    newSocket.emit("subscribe", "table:project_messages");
     newSocket.on("db_change", (event) => {
       if (event.table === "project_messages" && event.new?.project_id === projectId) {
         fetchMessages();
