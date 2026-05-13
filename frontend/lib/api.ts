@@ -34,7 +34,7 @@ export const apiClient = {
     } = options;
 
     const url = getApiUrl(endpoint);
-    const requestHeaders: HeadersInit = {
+    const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       ...headers,
     };
